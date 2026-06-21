@@ -1,0 +1,14 @@
+# Dependency / build artifacts that may appear inside individual skills
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+dist/
+build/
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
