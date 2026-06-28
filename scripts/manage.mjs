@@ -117,6 +117,33 @@ function skills(args) {
   if (r.status !== 0) process.exit(r.status ?? 1);
 }
 
+function git(args) {
+  const r = spawnSync("git", ["-C", repoRoot, ...args], { stdio: "inherit" });
+  if (r.error) {
+    console.error(`Failed to run git: ${r.error.message}`);
+    process.exit(1);
+  }
+  if (r.status !== 0) process.exit(r.status ?? 1);
+}
+
+function gitOut(args) {
+  const r = spawnSync("git", ["-C", repoRoot, ...args], { encoding: "utf8" });
+  return (r.stdout || "").trim();
+}
+
+// Stage skills.json, commit it (when changed) and push to THIS repo's own remote, using
+// whatever git credentials this clone is configured with (e.g. a repo-local core.sshCommand
+// or a credential helper). Only skills.json is staged, so other working changes are untouched.
+function commitAndPush(message) {
+  git(["add", "skills.json"]);
+  if (gitOut(["status", "--porcelain", "skills.json"])) {
+    git(["commit", "-m", message]);
+  } else {
+    console.log("skills.json unchanged — nothing to commit.");
+  }
+  git(["push"]);
+}
+
 function printHelp() {
   console.log(`dailyuse-ai-skills — manage the set of skills installed via npx skills.
 
@@ -124,9 +151,12 @@ Usage:  node scripts/manage.mjs <command> [args]   (or: npm run <command> -- [ar
 
 Managed commands (these keep skills.json in sync):
   sync                     Install every skill in skills.json (latest), globally
-  add <source> <skill...>  Install skill(s) now + add them to skills.json
-  remove <skill...>        Uninstall skill(s) + remove them from skills.json
+  add <source> <skill...>  Install skill(s) now + add them to skills.json   [--push]
+  remove <skill...>        Uninstall skill(s) + remove them from skills.json [--push]
+  save [message]           Commit skills.json + push to this repo's remote
   list                     Show the tracked skills (bare). With args -> npx skills list ...
+
+  --push  on add/remove also commits skills.json and pushes, using this clone's git creds.
 
 Anything else is passed straight to npx skills, e.g.:
   update [skill...]        npx skills update -g
@@ -181,7 +211,9 @@ switch (cmd) {
     mutateList((list) => {
       list[source] = [...(list[source] || []), ...names];
     });
-    console.log(`\nAdded to skills.json: ${names.join(", ")} (from ${source}). Commit to sync across machines.`);
+    console.log(`\nAdded to skills.json: ${names.join(", ")} (from ${source}).`);
+    if (args.includes("--push")) commitAndPush(`skills: add ${names.join(", ")}`);
+    else console.log("Tip: re-run with --push to also commit + push skills.json.");
     break;
   }
 
@@ -201,7 +233,9 @@ switch (cmd) {
         }
       }
     });
-    console.log(`\nRemoved from skills.json: ${names.join(", ")}. Commit to sync across machines.`);
+    console.log(`\nRemoved from skills.json: ${names.join(", ")}.`);
+    if (args.includes("--push")) commitAndPush(`skills: remove ${names.join(", ")}`);
+    else console.log("Tip: re-run with --push to also commit + push skills.json.");
     break;
   }
 
@@ -217,6 +251,12 @@ switch (cmd) {
     for (const src of Object.keys(list).sort()) {
       for (const s of list[src]) console.log(`  ${s.padEnd(24)} ${src}`);
     }
+    break;
+  }
+
+  case "save": {
+    const message = args.filter((a) => !a.startsWith("-")).join(" ") || "skills: update skills.json";
+    commitAndPush(message);
     break;
   }
 

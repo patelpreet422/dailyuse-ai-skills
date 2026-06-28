@@ -36,18 +36,48 @@ npm run sync          # or: node scripts/manage.mjs sync
 the universal path that GitHub Copilot CLI, Cursor, Gemini CLI, Cline, Warp, etc. read — so
 they load in every session. No symlinks, no build step.
 
+## Run it from anywhere (optional global command)
+
+`npm link` from the clone puts a `dailyuse-skills` command on your PATH that stays wired to
+*this* clone — it reads/writes this `skills.json` and commits/pushes this repo, from any
+directory:
+
+```sh
+cd dailyuse-ai-skills
+npm link                                   # one time; creates the global `dailyuse-skills`
+# then, from anywhere on the machine:
+dailyuse-skills add anthropics/skills skill-creator --push
+dailyuse-skills list
+```
+
+Use `npm link`, **not** `npm install -g .` — link *symlinks* the command to the clone (so your
+edits land in the git repo), whereas a global install copies the files and disconnects them
+from git. Undo with `npm unlink -g dailyuse-ai-skills`.
+
 ## Day-to-day
 
 ```sh
-npm run add -- anthropics/skills skill-creator   # install now + add to skills.json
+npm run add -- anthropics/skills skill-creator   # install + add to skills.json
 npm run remove -- skill-creator                  # uninstall + remove from skills.json
+npm run save -- "message"                        # commit skills.json + push
 npm run list                                     # show the tracked set
 npm run update                                   # update installed skills (npx skills update -g)
 npm run sync                                     # re-install the whole set (latest)
 ```
 
-`add` / `remove` / `sync` keep `skills.json` in step with what's installed. After `add` /
-`remove`, **commit `skills.json`** so other machines pick it up on their next `sync`.
+`add` / `remove` keep `skills.json` in step with what's installed. Pass **`--push`** to also
+commit `skills.json` and push in one go (or run `save` afterwards). With the linked global
+command:
+
+```sh
+dailyuse-skills add anthropics/skills skill-creator --push   # install + record + commit + push
+dailyuse-skills remove skill-creator --push
+dailyuse-skills save "tidy up"                               # just commit skills.json + push
+```
+
+`--push` / `save` stage **only** `skills.json` and `git push` from this clone, so they use this
+repo's own remote and credentials (see below) — nothing global, and other working changes are
+left untouched.
 
 Any command the wrapper doesn't manage is passed **straight through to `npx skills`**, so the
 full CLI stays available:
@@ -57,6 +87,32 @@ node scripts/manage.mjs find react       # -> npx skills find react
 node scripts/manage.mjs use vercel-labs/agent-skills@web-design-guidelines
 node scripts/manage.mjs list -g          # -> npx skills list -g  (installed, not the tracked set)
 ```
+
+## Pushing with this repo's own credentials
+
+`--push` / `save` run `git push` inside this clone, so they use whatever remote and auth the
+clone is configured with. To give this repo its **own** push credentials, independent of your
+global git setup:
+
+**SSH + a repo-local deploy key (recommended):**
+
+```sh
+git remote set-url origin git@github.com:patelpreet422/dailyuse-ai-skills.git
+git config core.sshCommand "ssh -i ~/.ssh/dailyuse_ed25519 -o IdentitiesOnly=yes"
+```
+
+Add `~/.ssh/dailyuse_ed25519.pub` as a deploy key (with write access) on the GitHub repo.
+`core.sshCommand` is repo-local, so only this repo uses that key.
+
+**HTTPS + a token (simpler):** embed a fine-grained PAT in the remote URL — it lives only in
+this repo's `.git/config`:
+
+```sh
+git remote set-url origin https://<TOKEN>@github.com/patelpreet422/dailyuse-ai-skills.git
+```
+
+Optionally pin a repo-local commit identity too:
+`git config user.name "..."` and `git config user.email "..."`.
 
 ## My own skills
 

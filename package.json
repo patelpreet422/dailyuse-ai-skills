@@ -10,6 +10,7 @@
     "sync": "node scripts/manage.mjs sync",
     "add": "node scripts/manage.mjs add",
     "remove": "node scripts/manage.mjs remove",
+    "save": "node scripts/manage.mjs save",
     "update": "node scripts/manage.mjs update -g",
     "list": "node scripts/manage.mjs list"
   },
