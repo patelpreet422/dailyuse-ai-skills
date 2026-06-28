@@ -1,86 +1,86 @@
 # dailyuse-ai-skills
 
-Version-controlled, single source of truth for the agent skills I install with
-[`npx skills`](https://www.npmjs.com/package/skills) (the [skills.sh](https://skills.sh) CLI).
+A portable **list** of the agent skills I install with
+[`npx skills`](https://www.npmjs.com/package/skills) (the [skills.sh](https://skills.sh) CLI),
+plus a thin wrapper that installs / updates / removes the whole set on any machine.
 
-See [`SKILLS.md`](./SKILLS.md) for the current inventory of skills in this repo.
+This repo does **not** vendor skill files — it only records *which skills to install and from
+where*. `npx skills` does the actual downloading. My own authored skills live in a separate
+source repo (e.g. `patelpreet422/skills`), which is just another entry in the list.
 
-## How it's wired
+## The list: `skills.json`
 
-`%USERPROFILE%\.agents\skills` is a **Windows junction** that points at this repo:
+`skills.json` maps each **source** to the **skill names** to install from it — the minimum
+`npx skills` needs to (re)install them:
 
-```
-C:\Users\<you>\.agents\skills   ──(junction)──►   C:\Users\<you>\personal\dailyuse-ai-skills
-```
-
-`.agents\skills` is the universal skills path that the `skills` CLI installs to and that
-GitHub Copilot CLI, Cursor, Codex, Gemini CLI, Cline, etc. load skills from. Because the
-junction sits at that exact path, **nothing about how agents discover skills changed** — the
-files just physically live in this git repo now, so they can be versioned and committed.
-
-> New to junctions, or want the full picture of how install → commit → load fits together?
-> See [`HOW-IT-WORKS.md`](./HOW-IT-WORKS.md).
-
-## Installing a new skill (so it lands here)
-
-**Easiest — use the helper** (installs into this repo through the junction *and* commits):
-
-```powershell
-cd $env:USERPROFILE\personal\dailyuse-ai-skills
-.\add-skill.ps1 <source> -Skill <skill-name>        # add -Push to also push to a remote
-# e.g. .\add-skill.ps1 spillwavesolutions/design-doc-mermaid -Skill design-doc-mermaid
+```json
+{
+  "anthropics/skills": ["frontend-design", "skill-creator"],
+  "mattpocock/skills": ["grill-me", "to-prd"],
+  "vercel-labs/skills": ["find-skills"]
+}
 ```
 
-**Or manually.** `skills add` (project scope) writes to `<current-dir>\.agents\skills`, so run it
-from your **home directory** with `--copy`, and it flows into this repo through the junction:
+A *source* is anything `npx skills add` accepts: `owner/repo`, a Git URL, or a local path —
+including my own `patelpreet422/skills`.
 
-```powershell
-cd $env:USERPROFILE
-npx skills add <source> --agent github-copilot --copy --skill <skill-name>
-cd $env:USERPROFILE\personal\dailyuse-ai-skills
-git add -A && git commit -m "Add <skill-name> skill"
+## Set up on a new machine
+
+```sh
+git clone https://github.com/patelpreet422/dailyuse-ai-skills
+cd dailyuse-ai-skills
+npm run sync          # or: node scripts/manage.mjs sync
 ```
 
-### Does it stay in sync automatically?
+`sync` installs every skill in `skills.json` (latest) **globally** into `~/.agents/skills` —
+the universal path that GitHub Copilot CLI, Cursor, Gemini CLI, Cline, Warp, etc. read — so
+they load in every session. No symlinks, no build step.
 
-- **Files: yes, conditionally.** Because `~\.agents\skills` is a junction to this repo, any install
-  that targets that path writes the real files *inside this repo* automatically. Two conditions:
-  - Run the install **from your home dir** (or just use `add-skill.ps1`, which does that for you) so
-    it targets `~\.agents\skills`. Running it from another folder creates a separate `.agents\skills`
-    *there* instead, which will **not** land in this repo.
-  - Use **`--copy`** so real files — not symlinks — are written into the repo.
-- **Git: no.** Git never auto-commits. After an install the new skill appears as uncommitted changes
-  (`git status`); you must `git add` + `git commit` (and `git push`) to capture it. `add-skill.ps1`
-  does the commit for you.
+## Day-to-day
 
-List / update / remove skills:
-
-```powershell
-npx skills list            # what's installed
-npx skills update          # update to latest
-npx skills remove <name>   # remove a skill
+```sh
+npm run add -- anthropics/skills skill-creator   # install now + add to skills.json
+npm run remove -- skill-creator                  # uninstall + remove from skills.json
+npm run list                                     # show the tracked set
+npm run update                                   # update installed skills (npx skills update -g)
+npm run sync                                     # re-install the whole set (latest)
 ```
 
-## Restoring on a new machine (or after the junction is lost)
+`add` / `remove` / `sync` keep `skills.json` in step with what's installed. After `add` /
+`remove`, **commit `skills.json`** so other machines pick it up on their next `sync`.
 
-1. Clone this repo to `%USERPROFILE%\personal\dailyuse-ai-skills`.
-2. Run the helper, which (re)creates the junction at `%USERPROFILE%\.agents\skills`
-   pointing back at the clone:
+Any command the wrapper doesn't manage is passed **straight through to `npx skills`**, so the
+full CLI stays available:
 
-```powershell
-powershell -ExecutionPolicy Bypass -File .\recreate-junction.ps1
+```sh
+node scripts/manage.mjs find react       # -> npx skills find react
+node scripts/manage.mjs use vercel-labs/agent-skills@web-design-guidelines
+node scripts/manage.mjs list -g          # -> npx skills list -g  (installed, not the tracked set)
 ```
 
-If `%USERPROFILE%\.agents\skills` already exists as a real folder with skills in it, the script
-backs it up to `.agents\skills.bak-<timestamp>` before creating the junction.
+## My own skills
 
-## Which agents load these skills
+Author them in a separate repo (e.g. `patelpreet422/skills`) laid out the way `npx skills`
+expects — one folder per skill under `skills/`:
 
-| Agent             | Loads from                          |
-| ----------------- | ----------------------------------- |
-| GitHub Copilot CLI| `~\.agents\skills` (this junction) + `~\.copilot\skills` (its own global path) |
-| Cursor / Codex / Gemini CLI / Cline / Zed / Warp | `.agents\skills` (universal path) |
+```
+skills/<skill-name>/SKILL.md
+```
 
-> Note: Claude Code and the `agency` project use `.claude\skills`, a separate path. To share a
-> skill there too, install it for that agent (`npx skills add <source> -a claude-code --skill <name>`)
-> or copy the skill folder into the relevant `.claude\skills`.
+Then add them to the set like any other source:
+
+```sh
+npm run add -- patelpreet422/skills my-skill
+```
+
+## Notes
+
+- **No symlinks, no vendored skill files.** The repo is just `skills.json` + the wrapper;
+  skill *content* is downloaded by `npx skills` into `~/.agents/skills`.
+- **Concurrency-safe.** `skills.json` is written atomically (temp file + rename) and every
+  read-modify-write is guarded by a lock, so simultaneous `add` / `remove` runs can't corrupt
+  it or lose an update.
+- **Root-`SKILL.md` repos don't fully install.** `npx skills` only copies the root `SKILL.md`
+  from a repo whose `SKILL.md` sits at the repo root (e.g. `spillwavesolutions/design-doc-mermaid`),
+  dropping its `scripts/`, `assets/`, etc. Host such skills as a **subfolder**
+  (`skills/<name>/SKILL.md`) in your own repo so the whole folder installs.

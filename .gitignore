@@ -1,11 +1,9 @@
-# Dependency / build artifacts that may appear inside individual skills
+# Node
 node_modules/
-.venv/
-venv/
-__pycache__/
-*.pyc
-dist/
-build/
+
+# Wrapper runtime artifacts (lock + atomic-write temp files for skills.json)
+skills.json.lock/
+skills.json.*.tmp
 
 # OS / editor noise
 .DS_Store

@@ -1,0 +1,19 @@
+{
+  "name": "dailyuse-ai-skills",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A portable list of the agent skills I install with `npx skills`, plus a thin wrapper to install/update/remove the whole set on any machine.",
+  "bin": {
+    "dailyuse-skills": "scripts/manage.mjs"
+  },
+  "scripts": {
+    "sync": "node scripts/manage.mjs sync",
+    "add": "node scripts/manage.mjs add",
+    "remove": "node scripts/manage.mjs remove",
+    "update": "node scripts/manage.mjs update -g",
+    "list": "node scripts/manage.mjs list"
+  },
+  "engines": {
+    "node": ">=16"
+  }
+}

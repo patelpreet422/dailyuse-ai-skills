@@ -1,0 +1,20 @@
+{
+  "anthropics/skills": [
+    "frontend-design",
+    "skill-creator"
+  ],
+  "mattpocock/skills": [
+    "grill-me",
+    "to-prd"
+  ],
+  "microsoft/azure-skills": [
+    "azure-kusto",
+    "microsoft-foundry"
+  ],
+  "vercel-labs/agent-skills": [
+    "web-design-guidelines"
+  ],
+  "vercel-labs/skills": [
+    "find-skills"
+  ]
+}
