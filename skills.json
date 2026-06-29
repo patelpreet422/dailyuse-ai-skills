@@ -3,6 +3,9 @@
     "frontend-design",
     "skill-creator"
   ],
+  "https://github.com/microsoft/playwright-cli": [
+    "playwright-cli"
+  ],
   "mattpocock/skills": [
     "grill-me",
     "to-prd"
