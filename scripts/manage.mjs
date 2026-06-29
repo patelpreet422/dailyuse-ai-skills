@@ -147,6 +147,22 @@ function commitAndPush(message) {
   git(["push"]);
 }
 
+// Install every skill in skills.json (latest) globally. Read-only on skills.json.
+function syncAll() {
+  const list = readList();
+  const sources = Object.keys(list);
+  if (!sources.length) {
+    console.log("skills.json is empty — nothing to sync.");
+    return;
+  }
+  for (const src of sources) {
+    const skillArgs = list[src].flatMap((s) => ["--skill", s]);
+    skills(["add", src, ...skillArgs, ...ADD_SCOPE]);
+  }
+  const total = sources.reduce((n, s) => n + list[s].length, 0);
+  console.log(`\nSynced ${total} skill(s) from ${sources.length} source(s).`);
+}
+
 function printHelp() {
   console.log(`dailyuse-ai-skills — manage the set of skills installed via npx skills.
 
@@ -154,12 +170,11 @@ Usage:  node scripts/manage.mjs <command> [args]   (or: npm run <command> -- [ar
 
 Managed commands (these keep skills.json in sync):
   sync                     Install every skill in skills.json (latest), globally
-  add <source> <skill...>  Install skill(s) now + add them to skills.json   [--push]
-  remove <skill...>        Uninstall skill(s) + remove them from skills.json [--push]
-  save [message]           Commit skills.json + push to this repo's remote
+  pull                     git pull this repo (from any cwd)
+  add <source> <skill...>  Install skill(s) now + add them to skills.json
+  remove <skill...>        Uninstall skill(s) + remove them from skills.json
+  push [message]           Commit skills.json + push to this repo's remote (from any cwd)
   list                     Show the tracked skills (bare). With args -> npx skills list ...
-
-  --push  on add/remove also commits skills.json and pushes, using this clone's git creds.
 
 Anything else is passed straight to npx skills, e.g.:
   update [skill...]        npx skills update -g
@@ -177,21 +192,13 @@ if (!cmd || cmd === "help" || cmd === "-h" || cmd === "--help") {
 }
 
 switch (cmd) {
-  case "sync": {
-    const list = readList(); // read-only; sync never writes skills.json
-    const sources = Object.keys(list);
-    if (!sources.length) {
-      console.log("skills.json is empty — nothing to sync.");
-      break;
-    }
-    for (const src of sources) {
-      const skillArgs = list[src].flatMap((s) => ["--skill", s]);
-      skills(["add", src, ...skillArgs, ...ADD_SCOPE]);
-    }
-    const total = sources.reduce((n, s) => n + list[s].length, 0);
-    console.log(`\nSynced ${total} skill(s) from ${sources.length} source(s).`);
+  case "sync":
+    syncAll();
     break;
-  }
+
+  case "pull":
+    git(["pull", "--ff-only"]); // pull this repo's remote from any cwd
+    break;
 
   case "add": {
     // Pass list-only queries straight through (nothing gets installed or recorded).
@@ -215,8 +222,7 @@ switch (cmd) {
       list[source] = [...(list[source] || []), ...names];
     });
     console.log(`\nAdded to skills.json: ${names.join(", ")} (from ${source}).`);
-    if (args.includes("--push")) commitAndPush(`skills: add ${names.join(", ")}`);
-    else console.log("Tip: re-run with --push to also commit + push skills.json.");
+    console.log("Tip: run `push` to commit + push skills.json.");
     break;
   }
 
@@ -237,8 +243,7 @@ switch (cmd) {
       }
     });
     console.log(`\nRemoved from skills.json: ${names.join(", ")}.`);
-    if (args.includes("--push")) commitAndPush(`skills: remove ${names.join(", ")}`);
-    else console.log("Tip: re-run with --push to also commit + push skills.json.");
+    console.log("Tip: run `push` to commit + push skills.json.");
     break;
   }
 
@@ -257,7 +262,7 @@ switch (cmd) {
     break;
   }
 
-  case "save": {
+  case "push": {
     const message = args.filter((a) => !a.startsWith("-")).join(" ") || "skills: update skills.json";
     commitAndPush(message);
     break;

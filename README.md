@@ -46,8 +46,10 @@ directory:
 cd dailyuse-ai-skills
 npm link                                   # one time; creates the global `dailyuse-skills`
 # then, from anywhere on the machine:
-dailyuse-skills add anthropics/skills skill-creator --push
+dailyuse-skills add anthropics/skills skill-creator
+dailyuse-skills push                       # commit skills.json + push, from any directory
 dailyuse-skills list
+dailyuse-skills pull                       # git pull this repo, from any directory
 ```
 
 Use `npm link`, **not** `npm install -g .` — link *symlinks* the command to the clone (so your
@@ -59,25 +61,24 @@ from git. Undo with `npm unlink -g dailyuse-ai-skills`.
 ```sh
 npm run add -- anthropics/skills skill-creator   # install + add to skills.json
 npm run remove -- skill-creator                  # uninstall + remove from skills.json
-npm run save -- "message"                        # commit skills.json + push
+npm run push -- "message"                        # commit skills.json + push
 npm run list                                     # show the tracked set
 npm run update                                   # update installed skills (npx skills update -g)
 npm run sync                                     # re-install the whole set (latest)
+npm run pull                                     # git pull this repo (from any dir)
 ```
 
-`add` / `remove` keep `skills.json` in step with what's installed. Pass **`--push`** to also
-commit `skills.json` and push in one go (or run `save` afterwards). With the linked global
-command:
+`add` / `remove` keep `skills.json` in step with what's installed; `push` commits and pushes it
+when you're ready. With the linked global command, from any directory:
 
 ```sh
-dailyuse-skills add anthropics/skills skill-creator --push   # install + record + commit + push
-dailyuse-skills remove skill-creator --push
-dailyuse-skills save "tidy up"                               # just commit skills.json + push
+dailyuse-skills add anthropics/skills skill-creator   # install + record
+dailyuse-skills remove skill-creator
+dailyuse-skills push "tidy up"                        # commit skills.json + push
 ```
 
-`--push` / `save` stage **only** `skills.json` and `git push` from this clone, so they use this
-repo's own remote and credentials (see below) — nothing global, and other working changes are
-left untouched.
+`push` stages **only** `skills.json` and `git push`es from this clone, so it uses this repo's own
+remote and credentials (see below) — nothing global, and other working changes are left untouched.
 
 Any command the wrapper doesn't manage is passed **straight through to `npx skills`**, so the
 full CLI stays available:
@@ -90,7 +91,7 @@ node scripts/manage.mjs list -g          # -> npx skills list -g  (installed, no
 
 ## Pushing with this repo's own credentials
 
-`--push` / `save` run `git push` inside this clone, so they use whatever remote and auth the
+`push` runs `git push` inside this clone, so it uses whatever remote and auth the
 clone is configured with. To give this repo its **own** push credentials, independent of your
 global git setup:
 

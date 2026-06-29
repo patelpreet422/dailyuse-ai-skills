@@ -8,9 +8,10 @@
   },
   "scripts": {
     "sync": "node scripts/manage.mjs sync",
+    "pull": "node scripts/manage.mjs pull",
     "add": "node scripts/manage.mjs add",
     "remove": "node scripts/manage.mjs remove",
-    "save": "node scripts/manage.mjs save",
+    "push": "node scripts/manage.mjs push",
     "update": "node scripts/manage.mjs update -g",
     "list": "node scripts/manage.mjs list"
   },
