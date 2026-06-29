@@ -108,8 +108,11 @@ function mutateList(mutator) {
 }
 
 function skills(args) {
-  const cmd = process.platform === "win32" ? "npx.cmd" : "npx";
-  const r = spawnSync(cmd, ["--yes", "skills", ...args], { stdio: "inherit" });
+  const isWin = process.platform === "win32";
+  const cmd = isWin ? "npx.cmd" : "npx";
+  // On Windows, spawning a .cmd shim requires shell:true (Node's CVE-2024-27980 fix
+  // rejects .cmd/.bat otherwise with EINVAL).
+  const r = spawnSync(cmd, ["--yes", "skills", ...args], { stdio: "inherit", shell: isWin });
   if (r.error) {
     console.error(`Failed to run npx skills: ${r.error.message}`);
     process.exit(1);
